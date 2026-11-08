@@ -36,7 +36,8 @@ The implementation should remain capability-driven so other Xclipse generations 
 - `tools/xclipse-diagnose.sh`: read-only on-device discovery script.
 - `module.prop`: KernelSU module metadata.
 - `service.sh`: deliberately non-tuning service placeholder for the diagnostic-only stage.
-- `companion/`: Android companion app project (to be scaffolded after the control/API contract is established).
+- `build/build-module.sh`: packages only the module payload into a KernelSU ZIP.
+- `companion/`: native Android companion app design and integration boundary.
 
 ## On-device investigation
 
@@ -47,6 +48,16 @@ su -c 'sh /path/to/Xclipse-Tuner/tools/xclipse-diagnose.sh'
 ```
 
 The script only reads sysfs/proc/property data. It does not write GPU settings. Review the report before attempting any tuning.
+
+## Build the diagnostic-only module
+
+From the repository root:
+
+```sh
+sh build/build-module.sh
+```
+
+The ZIP is written to `dist/`. It contains only `module.prop`, `service.sh`, and the read-only diagnostic utility. Do not treat this development build as a performance tuner; it intentionally changes no GPU settings.
 
 ## Development
 
