@@ -27,5 +27,5 @@ jobs:
       - name: Verify package contents
         run: |
           unzip -Z1 "$RUNNER_TEMP/dist/xclipse-tuner-0.1.0-dev.zip" | sort > "$RUNNER_TEMP/package-files.txt"
-          printf '%s\n' bin/xclipse-diagnose.sh module.prop service.sh | sort > "$RUNNER_TEMP/expected-files.txt"
+          printf '%s\n' bin/ bin/xclipse-diagnose.sh module.prop service.sh | sort > "$RUNNER_TEMP/expected-files.txt"
           diff -u "$RUNNER_TEMP/expected-files.txt" "$RUNNER_TEMP/package-files.txt"
