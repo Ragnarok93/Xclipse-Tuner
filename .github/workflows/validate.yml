@@ -1,0 +1,31 @@
+name: Validate
+
+on:
+  push:
+    branches:
+      - main
+      - "bootstrap/**"
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  shell-and-package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check shell syntax
+        run: |
+          sh -n build/build-module.sh
+          sh -n service.sh
+          sh -n tools/xclipse-diagnose.sh
+      - name: Build diagnostic module
+        run: |
+          sh build/build-module.sh "$RUNNER_TEMP/dist"
+          unzip -l "$RUNNER_TEMP/dist/xclipse-tuner-0.1.0-dev.zip"
+      - name: Verify package contents
+        run: |
+          unzip -Z1 "$RUNNER_TEMP/dist/xclipse-tuner-0.1.0-dev.zip" | sort > "$RUNNER_TEMP/package-files.txt"
+          printf '%s\n' bin/xclipse-diagnose.sh module.prop service.sh | sort > "$RUNNER_TEMP/expected-files.txt"
+          diff -u "$RUNNER_TEMP/expected-files.txt" "$RUNNER_TEMP/package-files.txt"
