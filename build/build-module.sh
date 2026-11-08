@@ -3,10 +3,12 @@ set -eu
 
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 OUT_DIR="${1:-$ROOT/dist}"
+mkdir -p "$OUT_DIR"
+OUT_DIR=$(CDPATH= cd -- "$OUT_DIR" && pwd)
 STAGE=$(mktemp -d "${TMPDIR:-/tmp}/xclipse-tuner.XXXXXX")
 trap 'rm -rf "$STAGE"' EXIT HUP INT TERM
 
-mkdir -p "$OUT_DIR" "$STAGE/bin"
+mkdir -p "$STAGE/bin"
 cp "$ROOT/module.prop" "$STAGE/module.prop"
 cp "$ROOT/service.sh" "$STAGE/service.sh"
 cp "$ROOT/tools/xclipse-diagnose.sh" "$STAGE/bin/xclipse-diagnose.sh"
