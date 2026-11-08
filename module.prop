@@ -1,0 +1,6 @@
+id=xclipse_tuner
+name=Xclipse Tuner
+version=0.1.0-dev
+versionCode=1
+author=Ragnarok93
+description=Device-aware Samsung Xclipse GPU tuner. Initial build is diagnostic-only and does not modify GPU settings.
