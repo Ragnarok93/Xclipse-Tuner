@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - "bootstrap/**"
+      - "feature/**"
   pull_request:
 
 permissions:
@@ -20,6 +21,10 @@ jobs:
           sh -n build/build-module.sh
           sh -n service.sh
           sh -n tools/xclipse-diagnose.sh
+          sh -n tools/xclipse-tuner.sh
+          sh -n tools/test-xclipse-tuner.sh
+      - name: Test read-only JSON protocol
+        run: sh tools/test-xclipse-tuner.sh
       - name: Build diagnostic module
         run: |
           sh build/build-module.sh "$RUNNER_TEMP/dist"
@@ -27,5 +32,5 @@ jobs:
       - name: Verify package contents
         run: |
           unzip -Z1 "$RUNNER_TEMP/dist/xclipse-tuner-0.1.0-dev.zip" | sort > "$RUNNER_TEMP/package-files.txt"
-          printf '%s\n' bin/ bin/xclipse-diagnose.sh module.prop service.sh | sort > "$RUNNER_TEMP/expected-files.txt"
+          printf '%s\n' bin/ bin/xclipse-diagnose.sh bin/xclipse-tuner module.prop service.sh | sort > "$RUNNER_TEMP/expected-files.txt"
           diff -u "$RUNNER_TEMP/expected-files.txt" "$RUNNER_TEMP/package-files.txt"
