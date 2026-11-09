@@ -152,7 +152,7 @@ class MainActivity : ComponentActivity() {
                 val process = ProcessBuilder(
                     "su",
                     "-c",
-                    "/data/adb/modules/xclipse_tuner/bin/xclipse-tuner status"
+                    "/system/bin/sh /data/adb/modules/xclipse_tuner/bin/xclipse-tuner status"
                 ).redirectErrorStream(true).start()
                 val text = process.inputStream.bufferedReader().use { it.readText() }
                 val exit = process.waitFor()
