@@ -49,7 +49,10 @@ private data class TelemetrySample(
     val clockMhz: Float?,
     val busy: Float?,
     val gpuTemp: Float?,
-    val maxMhz: Float?
+    val maxMhz: Float?,
+    val g3dTemp: Float?,
+    val cpuCoolingStates: String,
+    val thermalZoneTemperatures: String
 )
 
 class MainActivity : ComponentActivity() {
@@ -139,13 +142,16 @@ class MainActivity : ComponentActivity() {
                         ValueLine("G3D zone", if (g3d >= 0) "${"%.1f".format(Locale.US, g3d / 1000.0)} °C" else "—")
                         ValueLine("GPU cooling device", thermal?.optString("gpu_cooling_type").orEmpty().ifBlank { "Not found" })
                         ValueLine("Cooling state", "${number(thermal?.optInt("gpu_cooling_state", -1) ?: -1)} / ${number(thermal?.optInt("gpu_cooling_max_state", -1) ?: -1)}")
-                        Text("A zero cooling-device state does not rule out Samsung/vendor GPU frequency capping.", color = colors.seslSecondaryTextColor, fontSize = 12.sp)
+                        ValueLine("CPU cooling states", coolingStatesLabel(snapshot))
+                        Text("Thermal zones: ${thermalZoneTemperaturesLabel(snapshot)}", color = colors.seslSecondaryTextColor, fontSize = 11.sp)
+                        Text("CPU cooling states show active cpufreq cooling-device levels. A zero GPU cooling-device state does not rule out Samsung/vendor GPU frequency capping.", color = colors.seslSecondaryTextColor, fontSize = 12.sp)
                     }
 
                     Panel("PERFORMANCE HISTORY", Modifier.fillMaxWidth()) {
                         TelemetryChart("GPU clock", samples.mapNotNull { it.clockMhz }, "MHz")
                         TelemetryChart("GPU busy (raw)", samples.mapNotNull { it.busy }, "")
                         TelemetryChart("GPU temperature", samples.mapNotNull { it.gpuTemp }, "°C")
+                        TelemetryChart("G3D thermal zone", samples.mapNotNull { it.g3dTemp }, "°C")
                         TelemetryChart("GPU max constraint", samples.mapNotNull { it.maxMhz }, "MHz")
                         ActionLine("Clear chart history") { samples.clear() }
                     }
@@ -155,7 +161,7 @@ class MainActivity : ComponentActivity() {
                         ValueLine("Log file", if (logFile.exists()) "${logFile.length() / 1024} KB" else "Not created")
                         ActionLine(if (logging) "Stop logging" else "Start logging") { toggleLogging() }
                         ActionLine("Share / export CSV") { shareLog() }
-                        Text("Logging records each successful poll: timestamp, GPU clock, busy raw, GPU temperature and max cap. The file stays in app-private storage until shared or the app is cleared.", color = colors.seslSecondaryTextColor, fontSize = 12.sp)
+                        Text("Logging records each successful poll: GPU telemetry, G3D temperature, all thermal-zone temperatures, and CPU cooling-device states. The file stays in app-private storage until shared or the app is cleared.", color = colors.seslSecondaryTextColor, fontSize = 12.sp)
                     }
 
                     Panel("TUNING CONTROLS", Modifier.fillMaxWidth()) {
@@ -215,7 +221,10 @@ class MainActivity : ComponentActivity() {
                 gpu?.optLong("clock_khz", -1L)?.takeIf { it >= 0 }?.div(1000f),
                 gpu?.optDouble("busy_raw", Double.NaN)?.takeIf { it.isFinite() }?.toFloat(),
                 gpu?.optDouble("temperature_c", Double.NaN)?.takeIf { it.isFinite() }?.toFloat(),
-                gpu?.optLong("max_clock_khz", -1L)?.takeIf { it >= 0 }?.div(1000f)
+                gpu?.optLong("max_clock_khz", -1L)?.takeIf { it >= 0 }?.div(1000f),
+                parsed.optJSONObject("thermal")?.optDouble("g3d_temperature_c", Double.NaN)?.takeIf { it.isFinite() }?.toFloat(),
+                cpuCoolingStates(parsed),
+                thermalZoneTemperatures(parsed)
             )
             samples.add(sample)
             while (samples.size > 180) samples.removeAt(0)
@@ -331,6 +340,39 @@ private fun TelemetryChart(title: String, values: List<Float>, unit: String) {
     }
 }
 
+private fun cpuCoolingStates(snapshot: JSONObject): String {
+    val devices = snapshot.optJSONArray("cooling_devices") ?: return ""
+    return (0 until devices.length()).mapNotNull { index ->
+        val device = devices.optJSONObject(index) ?: return@mapNotNull null
+        val type = device.optString("type")
+        if (!type.contains("cpu", ignoreCase = true) && !type.contains("cpufreq", ignoreCase = true)) return@mapNotNull null
+        val state = device.optInt("current_state", -1)
+        val max = device.optInt("max_state", -1)
+        if (state < 0) null else "$type=$state/${if (max >= 0) max.toString() else "?"}"
+    }.joinToString(";")
+}
+
+private fun thermalZoneTemperatures(snapshot: JSONObject): String {
+    val zones = snapshot.optJSONArray("thermal_zones") ?: return ""
+    return (0 until zones.length()).mapNotNull { index ->
+        val zone = zones.optJSONObject(index) ?: return@mapNotNull null
+        val type = zone.optString("type").ifBlank { return@mapNotNull null }
+        val milli = zone.optDouble("temperature_millic", Double.NaN)
+        if (!milli.isFinite()) null else "$type=${"%.1f".format(Locale.US, milli / 1000.0)}"
+    }.joinToString(";")
+}
+
+private fun coolingStatesLabel(snapshot: JSONObject?): String {
+    val value = snapshot?.let(::cpuCoolingStates).orEmpty()
+    return value.ifBlank { "Not reported" }
+}
+
+private fun thermalZoneTemperaturesLabel(snapshot: JSONObject?): String {
+    val value = snapshot?.let(::thermalZoneTemperatures).orEmpty()
+    return value.ifBlank { "Not reported" }
+}
+
+private fun csvText(value: String): String = "\"${value.replace("\"", "\"\"")}\""
 private fun frequency(khz: Long): String = if (khz < 0) "—" else "${khz / 1000.0} MHz"
 private fun temperature(value: Double): String = if (!value.isFinite()) "—" else "${"%.1f".format(Locale.US, value)} °C"
 private fun number(value: Int): String = if (value < 0) "—" else value.toString()
