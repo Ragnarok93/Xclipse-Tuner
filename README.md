@@ -49,7 +49,7 @@ su -c '/data/adb/modules/xclipse_tuner/bin/xclipse-tuner status'
 su -c '/data/adb/modules/xclipse_tuner/bin/xclipse-tuner profiles'
 ```
 
-The command returns JSON schema version 1. It reads the Samsung GPU sysfs interface, matching GPU devfreq node, G3D thermal zone, and GPU cooling-device state when present. The GPU busy field is intentionally named `busy_raw`; its driver semantics have not yet been verified.
+The command returns JSON schema version 1. It reads the Samsung GPU sysfs interface, matching GPU devfreq node, G3D thermal zone, GPU cooling-device state, and enumerates available thermal zones and cooling devices. The `thermal_zones` array reports each zone's type and millidegree temperature; `cooling_devices` reports each cooling-device type and current/maximum state. These readings allow CPU/SoC thermal and cpufreq cooling activity to be correlated with GPU frequency caps without assuming fixed thermal-zone numbering. The GPU busy field is intentionally named `busy_raw`; its driver semantics have not yet been verified. The companion CSV includes G3D temperature, all available thermal-zone temperatures, and CPU cooling-device states.
 
 ## On-device investigation
 
