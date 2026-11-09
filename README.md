@@ -9,7 +9,7 @@ It consists of:
 
 ## Current status
 
-**Read-only telemetry milestone.** The module exposes a versioned JSON CLI and packages it for KernelSU. The companion app reads the telemetry and presents device, GPU, devfreq, and thermal state. No GPU sysfs writes are implemented or enabled. Gaming, Battery Saver, and Custom profiles remain unavailable pending kernel-driver and vendor-policy validation.
+**Read-only telemetry milestone.** The module exposes a versioned JSON CLI and packages it for KernelSU. The companion app adds configurable live polling, bounded in-memory trend charts, timestamped session CSV logging/export, device and thermal telemetry, and a capability-gated tuning panel. No GPU sysfs writes are implemented or enabled. Gaming, Battery Saver, and Custom profiles remain unavailable pending kernel-driver and vendor-policy validation.
 
 ## Safety principles
 
@@ -29,7 +29,7 @@ It consists of:
 - Kernel family: Samsung Android 6.1
 - Root/module manager: KernelSU
 
-The implementation remains capability-driven so other Xclipse generations can be added without assuming identical sysfs layouts.
+The implementation remains capability-driven so other Xclipse generations can be added without assuming identical sysfs layouts. The current companion's profile controls remain informational/locked: no tuning write interface is enabled.
 
 ## Repository layout
 
@@ -71,7 +71,7 @@ The ZIP is written to `dist/`. It includes both read-only diagnostic tools and d
 
 ## Build the companion app
 
-Open `companion/` in Android Studio with JDK 17 and an Android SDK installed, then build the `app` debug variant. See [companion/README.md](companion/README.md) for details.
+Builds are produced exclusively by GitHub Actions. Download the `xclipse-tuner-companion-debug` artifact from the latest successful Validate workflow run; no local Android Studio, Gradle, or SDK build is required.
 
 ## Next milestone
 
