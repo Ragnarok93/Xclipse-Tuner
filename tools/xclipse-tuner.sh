@@ -12,7 +12,8 @@ THERMAL_ROOT=${XCLIPSE_THERMAL_ROOT:-/sys/class/thermal}
 
 read_value() {
     [ -r "$1" ] || return 0
-    cat "$1" 2>/dev/null || true
+    value=$(cat "$1" 2>/dev/null || true)
+    printf '%s' "$value" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//'
 }
 
 json_string() {
