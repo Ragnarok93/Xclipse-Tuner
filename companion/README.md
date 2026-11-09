@@ -1,17 +1,34 @@
 # Xclipse Tuner Companion
 
-The companion will be a native Android app (Kotlin + Jetpack Compose).
+Native Android companion app (Kotlin + Jetpack Compose), styled with the project's OneUI Compose library.
 
-It will communicate with the installed KernelSU module through a narrow, versioned command/response interface. The app must not write GPU sysfs nodes directly. The privileged module-side controller will own capability detection, validation, apply/restore operations, and audit logging.
+## UI design source
 
-## Planned screens
+The app uses `Ragnarok93/oneui-compose` through the JitPack artifact `com.github.TrainerSnow:oneui-compose:0.7.0`. The root `OneUITheme` and `OneUITheme.colors` palette provide adaptive One UI theming, SESL surfaces/backgrounds, primary accents, text hierarchy, and functional status colors.
 
-- **Dashboard:** detected GPU/SoC, driver/control availability, current profile, live telemetry where readable.
-- **Profiles:** Balanced, Gaming, Battery Saver, and Custom.
-- **Controls:** only controls proven writable and safe on the detected device; unsupported controls are visibly unavailable.
-- **Diagnostics:** export a read-only hardware report and recent module log.
-- **Safety:** restore saved values, disable tuning, and show the state of thermal/vendor protections.
+## Build
 
-## Integration contract
+Open this `companion/` directory in Android Studio, or build with a compatible Gradle installation:
 
-The app will consume structured JSON from a module-side CLI. The command names, schema version, authorization behavior, and error codes will be specified and tested before the UI is connected. The app will never construct arbitrary sysfs paths or pass unchecked raw values to the privileged layer.
+```sh
+gradle -p . :app:assembleDebug
+```
+
+A local Android SDK and JDK 17 are required.
+
+## Privileged interface
+
+The app invokes only the fixed module command:
+
+```sh
+su -c '/data/adb/modules/xclipse_tuner/bin/xclipse-tuner status'
+```
+
+The command returns JSON schema version 1. The app never accepts arbitrary sysfs paths or passes user-controlled values to a root shell. The module owns hardware discovery and any future validated controls.
+
+## Current behavior
+
+- Displays device, SoC, GPU, kernel, GPU clock, raw busy counter, temperature, governor, devfreq constraints, G3D thermal-zone temperature, and GPU cooling state.
+- Shows Balanced as the no-override profile.
+- Shows Gaming, Battery Saver, and Custom as unavailable until their controls have been validated.
+- Does not write GPU sysfs nodes or alter thermal/vendor power management.
