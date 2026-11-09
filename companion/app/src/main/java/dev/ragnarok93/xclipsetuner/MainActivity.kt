@@ -238,10 +238,10 @@ class MainActivity : ComponentActivity() {
 
     private suspend fun appendLog(sample: TelemetrySample) = withContext(Dispatchers.IO) {
         if (!logFile.exists() || logFile.length() == 0L) {
-            logFile.writeText("timestamp_iso,gpu_clock_mhz,gpu_busy_raw,gpu_temperature_c,gpu_max_cap_mhz\n")
+            logFile.writeText("timestamp_iso,gpu_clock_mhz,gpu_busy_raw,gpu_temperature_c,gpu_max_cap_mhz,g3d_temperature_c,cpu_cooling_states,thermal_zone_temperatures_c\n")
         }
         logFile.appendText(
-            "${isoTime(sample.timeMs)},${csv(sample.clockMhz)},${csv(sample.busy)},${csv(sample.gpuTemp)},${csv(sample.maxMhz)}\n"
+            "${isoTime(sample.timeMs)},${csv(sample.clockMhz)},${csv(sample.busy)},${csv(sample.gpuTemp)},${csv(sample.maxMhz)},${csv(sample.g3dTemp)},${csvText(sample.cpuCoolingStates)},${csvText(sample.thermalZoneTemperatures)}\n"
         )
     }
 
@@ -249,7 +249,7 @@ class MainActivity : ComponentActivity() {
         if (logging) {
             logging = false
         } else {
-            if (!logFile.exists()) logFile.writeText("timestamp_iso,gpu_clock_mhz,gpu_busy_raw,gpu_temperature_c,gpu_max_cap_mhz\n")
+            if (!logFile.exists()) logFile.writeText("timestamp_iso,gpu_clock_mhz,gpu_busy_raw,gpu_temperature_c,gpu_max_cap_mhz,g3d_temperature_c,cpu_cooling_states,thermal_zone_temperatures_c\n")
             logging = true
         }
     }
