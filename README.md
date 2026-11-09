@@ -4,12 +4,12 @@ Xclipse Tuner is a device-aware GPU tuning project for Samsung Xclipse GPUs, beg
 
 It consists of:
 
-- A KernelSU module that detects supported Samsung/Xclipse controls, applies validated profiles, monitors state, and restores the user's original values.
-- A native Android companion app for device detection, telemetry, profiles, and tuning controls.
+- A KernelSU module for device discovery, telemetry, and eventually validated profiles with automatic restoration.
+- A native Android companion app using the project's OneUI Compose design system.
 
 ## Current status
 
-**Early development — diagnostic-only foundation.** The initial module does not change GPU settings. Hardware writes will remain disabled until the relevant sysfs nodes, accepted values, permissions, thermal interactions, and restoration behavior have been verified on target devices.
+**Read-only telemetry milestone.** The module exposes a versioned JSON CLI and packages it for KernelSU. The companion app reads the telemetry and presents device, GPU, devfreq, and thermal state. No GPU sysfs writes are implemented or enabled. Gaming, Battery Saver, and Custom profiles remain unavailable pending kernel-driver and vendor-policy validation.
 
 ## Safety principles
 
@@ -29,27 +29,37 @@ It consists of:
 - Kernel family: Samsung Android 6.1
 - Root/module manager: KernelSU
 
-The implementation should remain capability-driven so other Xclipse generations can be added without assuming identical sysfs layouts.
+The implementation remains capability-driven so other Xclipse generations can be added without assuming identical sysfs layouts.
 
 ## Repository layout
 
-- `tools/xclipse-diagnose.sh`: read-only on-device discovery script.
-- `module.prop`: KernelSU module metadata.
-- `service.sh`: deliberately non-tuning service placeholder for the diagnostic-only stage.
-- `build/build-module.sh`: packages only the module payload into a KernelSU ZIP.
-- `companion/`: native Android companion app design and integration boundary.
+- `tools/xclipse-diagnose.sh`: expanded read-only hardware discovery report.
+- `tools/xclipse-tuner.sh`: read-only companion protocol v1 (`status`, `telemetry`, `capabilities`, `profiles`).
+- `tools/test-xclipse-tuner.sh`: host-side fixture tests for the JSON protocol.
+- `module.prop` and `service.sh`: KernelSU metadata and non-tuning boot log.
+- `build/build-module.sh`: packages the diagnostic tools into a KernelSU ZIP.
+- `companion/`: Kotlin/Compose app using `Ragnarok93/oneui-compose`.
+
+## Module commands
+
+After installing the ZIP in KernelSU, the companion command is available at:
+
+```sh
+su -c '/data/adb/modules/xclipse_tuner/bin/xclipse-tuner status'
+su -c '/data/adb/modules/xclipse_tuner/bin/xclipse-tuner profiles'
+```
+
+The command returns JSON schema version 1. It reads the Samsung GPU sysfs interface, matching GPU devfreq node, G3D thermal zone, and GPU cooling-device state when present. The GPU busy field is intentionally named `busy_raw`; its driver semantics have not yet been verified.
 
 ## On-device investigation
 
-Clone the repository on the phone or copy `tools/xclipse-diagnose.sh` to Termux, then run:
+Run the full read-only diagnostic script:
 
 ```sh
 su -c 'sh /path/to/Xclipse-Tuner/tools/xclipse-diagnose.sh'
 ```
 
-The script only reads sysfs/proc/property data. It does not write GPU settings. Review the report before attempting any tuning.
-
-## Build the diagnostic-only module
+## Build the KernelSU module
 
 From the repository root:
 
@@ -57,8 +67,12 @@ From the repository root:
 sh build/build-module.sh
 ```
 
-The ZIP is written to `dist/`. It contains only `module.prop`, `service.sh`, and the read-only diagnostic utility. Do not treat this development build as a performance tuner; it intentionally changes no GPU settings.
+The ZIP is written to `dist/`. It includes both read-only diagnostic tools and does not change GPU settings.
 
-## Development
+## Build the companion app
 
-The first milestone is to establish the exact Xclipse 940 control surface and safe state transitions. The companion app and tuning profiles will be built against that verified contract, not guessed sysfs paths.
+Open `companion/` in Android Studio with JDK 17 and an Android SDK installed, then build the `app` debug variant. See [companion/README.md](companion/README.md) for details.
+
+## Next milestone
+
+Identify the exact Samsung driver and vendor policy responsible for dynamic Xclipse constraints. Only after the sysfs store handlers, accepted values, permissions, thermal interactions, and restoration behavior are understood should a write interface be designed.
