@@ -66,6 +66,7 @@ class MainActivity : ComponentActivity() {
     private val intervals = listOf(1000L, 2000L, 5000L, 10000L)
     private val activityScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private val logFile by lazy { File(filesDir, "xclipse-session.csv") }
+    private val logHeader = "timestamp_iso,gpu_clock_mhz,gpu_busy_raw,gpu_temperature_c,gpu_max_cap_mhz,g3d_temperature_c,cpu_cooling_states,thermal_zone_temperatures_c"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -237,9 +238,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private suspend fun appendLog(sample: TelemetrySample) = withContext(Dispatchers.IO) {
-        if (!logFile.exists() || logFile.length() == 0L) {
-            logFile.writeText("timestamp_iso,gpu_clock_mhz,gpu_busy_raw,gpu_temperature_c,gpu_max_cap_mhz,g3d_temperature_c,cpu_cooling_states,thermal_zone_temperatures_c\n")
-        }
+        ensureLogSchema()
         logFile.appendText(
             "${isoTime(sample.timeMs)},${csv(sample.clockMhz)},${csv(sample.busy)},${csv(sample.gpuTemp)},${csv(sample.maxMhz)},${csv(sample.g3dTemp)},${csvText(sample.cpuCoolingStates)},${csvText(sample.thermalZoneTemperatures)}\n"
         )
@@ -249,8 +248,23 @@ class MainActivity : ComponentActivity() {
         if (logging) {
             logging = false
         } else {
-            if (!logFile.exists()) logFile.writeText("timestamp_iso,gpu_clock_mhz,gpu_busy_raw,gpu_temperature_c,gpu_max_cap_mhz,g3d_temperature_c,cpu_cooling_states,thermal_zone_temperatures_c\n")
+            ensureLogSchema()
             logging = true
+        }
+    }
+
+    private fun ensureLogSchema() {
+        if (!logFile.exists() || logFile.length() == 0L) {
+            logFile.writeText("$logHeader\\n")
+            return
+        }
+        val existingHeader = logFile.bufferedReader().use { it.readLine() }
+        if (existingHeader != logHeader) {
+            val archive = File(filesDir, "xclipse-session-legacy-${System.currentTimeMillis()}.csv")
+            if (!logFile.renameTo(archive)) {
+                throw IllegalStateException("Unable to archive the previous CSV format")
+            }
+            logFile.writeText("$logHeader\\n")
         }
     }
 
