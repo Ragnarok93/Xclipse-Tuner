@@ -30,7 +30,11 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
@@ -57,6 +61,7 @@ class MainActivity : ComponentActivity() {
     private var intervalIndex by mutableStateOf(1)
     private val samples = mutableStateListOf<TelemetrySample>()
     private val intervals = listOf(1000L, 2000L, 5000L, 10000L)
+    private val activityScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private val logFile by lazy { File(filesDir, "xclipse-session.csv") }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -177,9 +182,12 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun refreshFromUi() {
-        if (!loading) {
-            kotlinx.coroutines.MainScope().launchRefresh { refreshTelemetry() }
-        }
+        if (!loading) activityScope.launch { refreshTelemetry() }
+    }
+
+    override fun onDestroy() {
+        activityScope.cancel()
+        super.onDestroy()
     }
 
     private suspend fun refreshTelemetry() {
@@ -251,9 +259,6 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-private fun kotlinx.coroutines.CoroutineScope.launchRefresh(block: suspend () -> Unit) {
-    launch(Dispatchers.Main) { block() }
-}
 
 @androidx.compose.runtime.Composable
 private fun Panel(title: String, modifier: Modifier = Modifier, content: @androidx.compose.runtime.Composable () -> Unit) {
