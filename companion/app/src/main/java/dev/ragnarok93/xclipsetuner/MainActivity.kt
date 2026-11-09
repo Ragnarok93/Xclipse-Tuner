@@ -40,7 +40,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            OneUITheme(dynamicColors = true) {
+            OneUITheme(dynamicColors = false) {
                 val colors = OneUITheme.colors
                 val scope = rememberCoroutineScope()
                 LaunchedEffect(Unit) { refreshTelemetry() }
