@@ -248,8 +248,12 @@ class MainActivity : ComponentActivity() {
         if (logging) {
             logging = false
         } else {
-            ensureLogSchema()
-            logging = true
+            try {
+                ensureLogSchema()
+                logging = true
+            } catch (failure: Exception) {
+                error = failure.message ?: "Unable to prepare the session CSV"
+            }
         }
     }
 
