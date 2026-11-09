@@ -34,3 +34,21 @@ jobs:
           unzip -Z1 "$RUNNER_TEMP/dist/xclipse-tuner-0.1.0-dev.zip" | sort > "$RUNNER_TEMP/package-files.txt"
           printf '%s\n' bin/ bin/xclipse-diagnose.sh bin/xclipse-tuner module.prop service.sh | sort > "$RUNNER_TEMP/expected-files.txt"
           diff -u "$RUNNER_TEMP/expected-files.txt" "$RUNNER_TEMP/package-files.txt"
+
+  companion-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.6"
+      - name: Assemble companion app
+        run: gradle -p companion :app:assembleDebug
