@@ -17,16 +17,17 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import org.oneui.compose.theme.OneUITheme
@@ -41,6 +42,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             OneUITheme(dynamicColors = true) {
                 val colors = OneUITheme.colors
+                val scope = rememberCoroutineScope()
                 LaunchedEffect(Unit) { refreshTelemetry() }
 
                 Column(
@@ -75,21 +77,37 @@ class MainActivity : ComponentActivity() {
                     Panel(title = "LIVE GPU", modifier = Modifier.fillMaxWidth()) {
                         ValueLine("Clock", frequency(gpu?.optLong("clock_khz", -1L) ?: -1L))
                         ValueLine("Busy (raw)", number(gpu?.optInt("busy_raw", -1) ?: -1))
-                        ValueLine("GPU temperature", temperature(gpu?.optDouble("temperature_c", Double.NaN) ?: Double.NaN))
+                        ValueLine(
+                            "GPU temperature",
+                            temperature(gpu?.optDouble("temperature_c", Double.NaN) ?: Double.NaN)
+                        )
                         ValueLine("Governor", gpu?.optString("governor").orEmpty().ifBlank { "—" })
-                        ValueLine("GPU max constraint", frequency(gpu?.optLong("max_clock_khz", -1L) ?: -1L))
+                        ValueLine(
+                            "GPU max constraint",
+                            frequency(gpu?.optLong("max_clock_khz", -1L) ?: -1L)
+                        )
                     }
 
                     Panel(title = "DEVFREQ", modifier = Modifier.fillMaxWidth()) {
                         ValueLine("Current", frequency(devfreq?.optLong("current_khz", -1L) ?: -1L))
                         ValueLine("Target", frequency(devfreq?.optLong("target_khz", -1L) ?: -1L))
-                        ValueLine("Min / max", "${frequency(devfreq?.optLong("min_khz", -1L) ?: -1L)} / ${frequency(devfreq?.optLong("max_khz", -1L) ?: -1L)}")
+                        ValueLine(
+                            "Min / max",
+                            "${frequency(devfreq?.optLong("min_khz", -1L) ?: -1L)} / " +
+                                frequency(devfreq?.optLong("max_khz", -1L) ?: -1L)
+                        )
                     }
 
                     Panel(title = "THERMAL", modifier = Modifier.fillMaxWidth()) {
                         val g3d = thermal?.optLong("g3d_temperature_millic", -1L) ?: -1L
-                        ValueLine("G3D zone", if (g3d >= 0) "${"%.1f".format(g3d / 1000.0)} °C" else "—")
-                        ValueLine("GPU cooling state", number(thermal?.optInt("gpu_cooling_state", -1) ?: -1))
+                        ValueLine(
+                            "G3D zone",
+                            if (g3d >= 0) "${"%.1f".format(g3d / 1000.0)} °C" else "—"
+                        )
+                        ValueLine(
+                            "GPU cooling state",
+                            number(thermal?.optInt("gpu_cooling_state", -1) ?: -1)
+                        )
                     }
 
                     Panel(title = "PROFILES", modifier = Modifier.fillMaxWidth()) {
@@ -101,14 +119,15 @@ class MainActivity : ComponentActivity() {
 
                     Panel(title = "SAFETY", modifier = Modifier.fillMaxWidth()) {
                         Text(
-                            "Read-only mode is active. The app does not write GPU sysfs nodes. Samsung thermal and vendor power management remain untouched.",
+                            "Read-only mode is active. The app does not write GPU sysfs nodes. " +
+                                "Samsung thermal and vendor power management remain untouched.",
                             color = colors.seslSecondaryTextColor,
                             fontSize = 14.sp
                         )
                     }
 
-                    if (error != null) {
-                        Text(error!!, color = colors.seslFunctionalRed, fontSize = 13.sp)
+                    error?.let {
+                        Text(it, color = colors.seslFunctionalRed, fontSize = 13.sp)
                     }
                     Text(
                         if (loading) "Reading module telemetry…" else "Tap to refresh",
@@ -116,7 +135,7 @@ class MainActivity : ComponentActivity() {
                         fontSize = 13.sp,
                         modifier = Modifier
                             .align(Alignment.CenterHorizontally)
-                            .clickable { refreshTelemetry() }
+                            .clickable { scope.launch { refreshTelemetry() } }
                             .padding(12.dp)
                     )
                     Spacer(Modifier.height(12.dp))
@@ -131,12 +150,13 @@ class MainActivity : ComponentActivity() {
         try {
             val output = withContext(Dispatchers.IO) {
                 val process = ProcessBuilder(
-                    "su", "-c",
+                    "su",
+                    "-c",
                     "/data/adb/modules/xclipse_tuner/bin/xclipse-tuner status"
                 ).redirectErrorStream(true).start()
                 val text = process.inputStream.bufferedReader().use { it.readText() }
                 val exit = process.waitFor()
-                if (exit != 0) error("Module command exited with $exit: $text")
+                if (exit != 0) throw IllegalStateException("Module command exited with $exit: $text")
                 text
             }
             snapshot = JSONObject(output)
