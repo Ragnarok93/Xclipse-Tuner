@@ -12,8 +12,9 @@ mkdir -p "$STAGE/bin"
 cp "$ROOT/module.prop" "$STAGE/module.prop"
 cp "$ROOT/service.sh" "$STAGE/service.sh"
 cp "$ROOT/tools/xclipse-diagnose.sh" "$STAGE/bin/xclipse-diagnose.sh"
+cp "$ROOT/tools/xclipse-tuner.sh" "$STAGE/bin/xclipse-tuner"
 chmod 0644 "$STAGE/module.prop"
-chmod 0755 "$STAGE/service.sh" "$STAGE/bin/xclipse-diagnose.sh"
+chmod 0755 "$STAGE/service.sh" "$STAGE/bin/xclipse-diagnose.sh" "$STAGE/bin/xclipse-tuner"
 
 if ! command -v zip >/dev/null 2>&1; then
     echo "error: zip is required to build the KernelSU package" >&2
