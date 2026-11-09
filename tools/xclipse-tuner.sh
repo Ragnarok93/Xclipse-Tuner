@@ -3,7 +3,7 @@
 # READ-ONLY: this command never writes to sysfs or changes device state.
 set -eu
 
-PATH=/system/bin:/system/xbin:/vendor/bin:/sbin
+PATH=/system/bin:/system/xbin:/vendor/bin:/sbin:$PATH
 export PATH
 
 GPU_ROOT=${XCLIPSE_GPU_ROOT:-/sys/kernel/gpu}
@@ -16,7 +16,7 @@ read_value() {
 }
 
 json_string() {
-    escaped=$(printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e ':a;N;$!ba;s/\n/\\n/g')
+    escaped=$(printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g')
     printf '"%s"' "$escaped"
 }
 
