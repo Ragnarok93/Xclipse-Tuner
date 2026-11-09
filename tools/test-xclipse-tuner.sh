@@ -27,9 +27,14 @@ printf '%s\n' '1095000' > "$DEVFREQ/22200000.sgpu/max_freq"
 
 printf '%s\n' 'G3D' > "$THERMAL/thermal_zone4/type"
 printf '%s\n' '  76000  ' > "$THERMAL/thermal_zone4/temp"
+printf '%s\n' 'CPU' > "$THERMAL/thermal_zone5/type"
+printf '%s\n' '  68000  ' > "$THERMAL/thermal_zone5/temp"
 printf '%s\n' 'thermal-gpufreq-0' > "$THERMAL/cooling_device7/type"
 printf '%s\n' '0' > "$THERMAL/cooling_device7/cur_state"
 printf '%s\n' '13' > "$THERMAL/cooling_device7/max_state"
+printf '%s\n' 'thermal-cpufreq-1' > "$THERMAL/cooling_device8/type"
+printf '%s\n' '  9  ' > "$THERMAL/cooling_device8/cur_state"
+printf '%s\n' '13' > "$THERMAL/cooling_device8/max_state"
 
 OUTPUT=$(XCLIPSE_GPU_ROOT="$GPU" XCLIPSE_DEVFREQ_ROOT="$DEVFREQ" XCLIPSE_THERMAL_ROOT="$THERMAL" sh "$ROOT/tools/xclipse-tuner.sh" status)
 printf '%s' "$OUTPUT" | python3 -c '
