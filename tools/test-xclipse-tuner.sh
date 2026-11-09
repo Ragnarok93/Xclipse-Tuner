@@ -9,7 +9,7 @@ trap 'rm -rf "$TMP"' EXIT HUP INT TERM
 GPU="$TMP/gpu"
 DEVFREQ="$TMP/devfreq"
 THERMAL="$TMP/thermal"
-mkdir -p "$GPU" "$DEVFREQ/22200000.sgpu" "$THERMAL/thermal_zone4" "$THERMAL/cooling_device7"
+mkdir -p "$GPU" "$DEVFREQ/22200000.sgpu" "$THERMAL/thermal_zone4" "$THERMAL/thermal_zone5" "$THERMAL/cooling_device7" "$THERMAL/cooling_device8"
 
 printf '%s\n' 'Samsung Xclipse 940' > "$GPU/gpu_model"
 printf '%s\n' '650000' > "$GPU/gpu_clock"
@@ -43,7 +43,14 @@ assert data["gpu"]["busy_raw"] == 73
 assert data["gpu"]["temperature_c"] == 76.0
 assert data["devfreq"]["max_khz"] == 1095000
 assert data["thermal"]["g3d_temperature_millic"] == 76000
+assert data["thermal"]["g3d_temperature_c"] == 76.0
 assert data["thermal"]["gpu_cooling_state"] == 0
+zones = {zone["type"]: zone["temperature_millic"] for zone in data["thermal_zones"]}
+assert zones["G3D"] == 76000
+assert zones["CPU"] == 68000
+cooling = {device["type"]: device["current_state"] for device in data["cooling_devices"]}
+assert cooling["thermal-cpufreq-1"] == 9
+assert cooling["thermal-gpufreq-0"] == 0
 assert data["controls"]["writes_enabled"] is False
 assert data["controls"]["validated_write_nodes"] == []
 '
