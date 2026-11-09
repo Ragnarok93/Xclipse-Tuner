@@ -116,6 +116,48 @@ if [ -n "$gpu_cooling" ]; then
     cooling_max=$(read_value "$gpu_cooling/max_state")
 fi
 
+# Capture all thermal zones and cooling devices so CPU/SoC policy can be
+# correlated with the GPU cap without assuming Samsung's zone numbering.
+thermal_zones_json=
+first_zone=1
+for candidate in "$THERMAL_ROOT"/thermal_zone*; do
+    [ -d "$candidate" ] || continue
+    zone_type=$(read_value "$candidate/type")
+    zone_temp=$(read_value "$candidate/temp")
+    [ -n "$zone_type" ] || continue
+    if [ "$first_zone" -eq 1 ]; then
+        thermal_zones_json='['
+        first_zone=0
+    else
+        thermal_zones_json="$thermal_zones_json,"
+    fi
+    zone_type_json=$(json_string "$zone_type")
+    zone_temp_json=$(json_number "$zone_temp")
+    thermal_zones_json="$thermal_zones_json{\"type\":$zone_type_json,\"temperature_millic\":$zone_temp_json}"
+done
+[ "$first_zone" -eq 1 ] && thermal_zones_json='[]' || thermal_zones_json="$thermal_zones_json]"
+
+cooling_devices_json=
+first_cooling=1
+for candidate in "$THERMAL_ROOT"/cooling_device*; do
+    [ -d "$candidate" ] || continue
+    device_type=$(read_value "$candidate/type")
+    device_state=$(read_value "$candidate/cur_state")
+    device_max=$(read_value "$candidate/max_state")
+    [ -n "$device_type" ] || continue
+    if [ "$first_cooling" -eq 1 ]; then
+        cooling_devices_json='['
+        first_cooling=0
+    else
+        cooling_devices_json="$cooling_devices_json,"
+    fi
+    device_type_json=$(json_string "$device_type")
+    device_state_json=$(json_number "$device_state")
+    device_max_json=$(json_number "$device_max")
+    cooling_devices_json="$cooling_devices_json{\"type\":$device_type_json,\"current_state\":$device_state_json,\"max_state\":$device_max_json}"
+done
+[ "$first_cooling" -eq 1 ] && cooling_devices_json='[]' || cooling_devices_json="$cooling_devices_json]"
+
 device_model=$(property ro.product.model)
 device_name=$(property ro.product.device)
 soc_model=$(property ro.soc.model)
@@ -157,9 +199,12 @@ printf '"max_khz":'; json_number "$devfreq_max"
 printf '},'
 printf '"thermal":{'
 printf '"g3d_temperature_millic":'; json_number "$g3d_temp"; printf ','
+printf '"g3d_temperature_c":'; if [ -n "$g3d_temp" ]; then awk -v value="$g3d_temp" 'BEGIN { printf "%.1f", value / 1000 }'; else printf 'null'; fi; printf ','
 printf '"gpu_cooling_type":'; json_string "$cooling_type"; printf ','
 printf '"gpu_cooling_state":'; json_number "$cooling_state"; printf ','
 printf '"gpu_cooling_max_state":'; json_number "$cooling_max"
 printf '},'
+printf '"thermal_zones":%s,' "$thermal_zones_json"
+printf '"cooling_devices":%s,' "$cooling_devices_json"
 printf '"controls":{"writes_enabled":false,"validated_write_nodes":[],"reason":"Read-only milestone. No GPU sysfs write path is enabled."}'
 printf '}\n'
